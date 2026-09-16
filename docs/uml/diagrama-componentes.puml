@@ -1,0 +1,50 @@
+@startuml
+
+title Diagrama de componentes - ImageFlow Distributed
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Usuario" as Usuario
+
+component "Cliente Web\nHTML / CSS / JavaScript" as Cliente
+
+component "API Gateway\n<<Proxy>>\nPuerto 3000" as Gateway
+
+component "Coordinator\n<<Mediator>>\nPuerto 3001" as Coordinator
+
+component "Worker 1\nProcesamiento de imágenes\nPuerto 4001" as W1
+
+component "Worker 2\nProcesamiento de imágenes\nPuerto 4002" as W2
+
+component "Worker 3\nProcesamiento de imágenes\nPuerto 4003" as W3
+
+component "Observer\n<<Observer>>\nPuerto 5000" as Observer
+
+component "Sharp\nProcesamiento de imágenes" as Sharp
+
+folder "Sistema de archivos\n/images" as Images
+
+Usuario --> Cliente : Interactúa
+
+Cliente --> Gateway : HTTP\nSolicitud de procesamiento
+
+Gateway --> Coordinator : HTTP / REST
+
+Coordinator --> W1 : HTTP / REST
+Coordinator --> W2 : HTTP / REST
+Coordinator --> W3 : HTTP / REST
+
+Coordinator --> Observer : Evento HTTP POST
+
+W1 --> Sharp : Usa
+W2 --> Sharp : Usa
+W3 --> Sharp : Usa
+
+Sharp --> Images : Lee / escribe imágenes
+
+Coordinator ..> W1 : Round Robin
+Coordinator ..> W2 : Round Robin
+Coordinator ..> W3 : Round Robin
+
+@enduml

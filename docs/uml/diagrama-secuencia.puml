@@ -1,0 +1,61 @@
+@startuml
+
+title Diagrama de secuencia - Procesamiento distribuido en ImageFlow
+
+actor Usuario
+
+participant "Cliente Web" as Cliente
+participant "API Gateway\n<<Proxy>>\n:3000" as Gateway
+participant "Coordinator\n<<Mediator>>\n:3001" as Coordinator
+participant "Worker seleccionado\n:4001 / :4002 / :4003" as Worker
+participant "Sharp" as Sharp
+participant "Sistema de archivos\n/images" as Images
+participant "Observer\n<<Observer>>\n:5000" as Observer
+
+Usuario -> Cliente : Presiona "Procesar imagen"
+
+Cliente -> Gateway : GET /procesar
+activate Gateway
+
+Gateway -> Coordinator : GET /procesar
+activate Coordinator
+
+Coordinator -> Coordinator : Seleccionar Worker\nmediante Round Robin
+
+Coordinator -> Worker : GET /procesar-imagen
+activate Worker
+
+Worker -> Sharp : Solicitar conversión\na escala de grises
+activate Sharp
+
+Sharp -> Images : Leer prueba.jpg
+Images --> Sharp : Imagen original
+
+Sharp -> Sharp : Conversión a\na escala de grises
+
+Sharp -> Images : Guardar imagen procesada
+Images --> Sharp : Archivo guardado
+
+Sharp --> Worker : Procesamiento completado
+deactivate Sharp
+
+Worker --> Coordinator : HTTP 200 + resultado
+deactivate Worker
+
+Coordinator -> Observer : POST /evento\nWorker + mensaje
+activate Observer
+
+Observer -> Observer : Registrar evento,\nworker y fecha
+
+Observer --> Coordinator : Evento registrado
+deactivate Observer
+
+Coordinator --> Gateway : Resultado del procesamiento
+deactivate Coordinator
+
+Gateway --> Cliente : Resultado + Worker responsable
+deactivate Gateway
+
+Cliente --> Usuario : Mostrar imagen original,\nimagen procesada y nodo utilizado
+
+@enduml
