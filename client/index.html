@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ImageFlow Distributed</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 30px;
+    }
+
+    .contenedor {
+      width: 95%;
+      max-width: 1000px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .descripcion {
+      text-align: center;
+      color: #555;
+      margin-bottom: 25px;
+    }
+
+    .arquitectura {
+      padding: 15px;
+      background: #ecfdf5;
+      border-radius: 8px;
+      margin-bottom: 25px;
+    }
+
+    .arquitectura strong {
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .imagenes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .imagen-box {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      background: #fafafa;
+    }
+
+    .imagen-box h3 {
+      margin-top: 0;
+    }
+
+    .imagen-box img {
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .sin-imagen {
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #777;
+      background: #eee;
+      border-radius: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      padding: 18px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      line-height: 1.6;
+    }
+
+    .worker {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      .imagenes {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <h1>ImageFlow Distributed</h1>
+
+    <p class="descripcion">
+      Sistema distribuido para el procesamiento concurrente de imágenes
+    </p>
+
+    <div class="arquitectura">
+      <strong>Arquitectura activa</strong>
+      Gateway → Coordinator → Worker 1 / Worker 2 / Worker 3 → Observer
+    </div>
+
+    <div class="imagenes">
+
+      <div class="imagen-box">
+        <h3>Imagen original</h3>
+
+        <img
+          src="/images/prueba.jpg"
+          alt="Imagen original"
+        >
+      </div>
+
+      <div class="imagen-box">
+        <h3>Imagen procesada</h3>
+
+        <div id="esperaImagen" class="sin-imagen">
+          Presione "Procesar imagen"
+        </div>
+
+        <img
+          id="imagenProcesada"
+          src=""
+          alt="Imagen procesada"
+          style="display: none;"
+        >
+      </div>
+
+    </div>
+
+    <button id="procesar">
+      Procesar imagen
+    </button>
+
+    <div id="resultado">
+      Esperando una solicitud...
+    </div>
+
+  </div>
+
+  <script>
+    const boton = document.getElementById("procesar");
+    const resultado = document.getElementById("resultado");
+    const imagenProcesada = document.getElementById("imagenProcesada");
+    const esperaImagen = document.getElementById("esperaImagen");
+
+    boton.addEventListener("click", async () => {
+
+      boton.disabled = true;
+      boton.textContent = "Procesando...";
+
+      resultado.textContent =
+        "Enviando tarea al sistema distribuido...";
+
+      try {
+
+        const respuesta = await fetch("/procesar");
+
+        const texto = await respuesta.text();
+
+        if (!respuesta.ok) {
+          throw new Error(texto);
+        }
+
+        let worker = "";
+        let archivoImagen = "";
+
+        if (texto.includes("4001")) {
+          worker = "Worker 1";
+          archivoImagen = "procesada-worker1.jpg";
+        }
+        else if (texto.includes("4002")) {
+          worker = "Worker 2";
+          archivoImagen = "procesada-worker2.jpg";
+        }
+        else if (texto.includes("4003")) {
+          worker = "Worker 3";
+          archivoImagen = "procesada-worker3.jpg";
+        }
+
+        imagenProcesada.src =
+          `/images/${archivoImagen}?t=${Date.now()}`;
+
+        imagenProcesada.style.display = "block";
+        esperaImagen.style.display = "none";
+
+        resultado.innerHTML = `
+          <strong>Procesamiento completado correctamente</strong>
+          <div class="worker">
+            Nodo responsable: ${worker}
+          </div>
+          <br>
+          La imagen fue convertida a escala de grises mediante
+          la arquitectura distribuida de ImageFlow.
+        `;
+
+      } catch (error) {
+
+        resultado.innerHTML = `
+          <strong>Error de procesamiento</strong>
+          <br><br>
+          ${error.message}
+        `;
+
+      } finally {
+
+        boton.disabled = false;
+        boton.textContent = "Procesar imagen";
+
+      }
+
+    });
+  </script>
+
+</body>
+</html>
