@@ -1,6 +1,6 @@
 @startuml
 
-title Diagrama de despliegue - ImageFlow Distributed
+title Diagrama de despliegue - ImageFlow Distributed en AWS EC2
 
 skinparam shadowing false
 skinparam dpi 150
@@ -9,41 +9,57 @@ node "Cliente\nNavegador Web" as Cliente {
   artifact "Interfaz Web\nHTML / CSS / JavaScript" as UI
 }
 
-node "Servidor Node.js" as Servidor {
+cloud "Internet" as Internet
 
-  node "Gateway\nPuerto 3000\n<<Proxy>>" as Gateway {
-    artifact "gateway/server.js" as GWFile
+node "AWS Cloud" {
+
+  node "Amazon EC2\nAmazon Linux 2023" as EC2 {
+
+    node "Nginx\nPuerto 80\nReverse Proxy" as Nginx
+
+    node "PM2\nGestor de procesos" as PM2
+
+    node "Gateway\nPuerto 3000\n<<Proxy>>" as Gateway {
+      artifact "gateway/server.js" as GWFile
+    }
+
+    node "Coordinator\nPuerto 3001\n<<Mediator>>" as Coordinator {
+      artifact "coordinator/server.js" as CoordFile
+    }
+
+    node "Worker 1\nPuerto 4001" as Worker1 {
+      artifact "worker1/server.js" as W1File
+    }
+
+    node "Worker 2\nPuerto 4002" as Worker2 {
+      artifact "worker2/server.js" as W2File
+    }
+
+    node "Worker 3\nPuerto 4003" as Worker3 {
+      artifact "worker3/server.js" as W3File
+    }
+
+    node "Observer\nPuerto 5000\n<<Observer>>" as Observer {
+      artifact "observer/server.js" as ObsFile
+    }
+
+    artifact "Sharp\nProcesamiento de imágenes" as Sharp
+
+    database "Sistema de archivos\n/images" as Images
   }
-
-  node "Coordinator\nPuerto 3001\n<<Mediator>>" as Coordinator {
-    artifact "coordinator/server.js" as CoordFile
-  }
-
-  node "Worker 1\nPuerto 4001" as Worker1 {
-    artifact "worker1/server.js" as W1File
-  }
-
-  node "Worker 2\nPuerto 4002" as Worker2 {
-    artifact "worker2/server.js" as W2File
-  }
-
-  node "Worker 3\nPuerto 4003" as Worker3 {
-    artifact "worker3/server.js" as W3File
-  }
-
-  node "Observer\nPuerto 5000\n<<Observer>>" as Observer {
-    artifact "observer/server.js" as ObsFile
-  }
-
-  database "Sistema de archivos\n/images" as Images
-  artifact "Sharp\nProcesamiento de imágenes" as Sharp
 }
 
-Cliente --> Gateway : HTTP\nlocalhost:3000
+Cliente --> Internet : HTTP
+Internet --> Nginx : Puerto 80
+
+Nginx --> Gateway : Reverse Proxy\nlocalhost:3000
+
 Gateway --> Coordinator : HTTP\nlocalhost:3001
+
 Coordinator --> Worker1 : HTTP\nlocalhost:4001
 Coordinator --> Worker2 : HTTP\nlocalhost:4002
 Coordinator --> Worker3 : HTTP\nlocalhost:4003
+
 Coordinator --> Observer : HTTP POST\nlocalhost:5000
 
 Worker1 --> Sharp : Usa
@@ -51,5 +67,12 @@ Worker2 --> Sharp : Usa
 Worker3 --> Sharp : Usa
 
 Sharp --> Images : Lee / escribe imágenes
+
+PM2 ..> Gateway : Administra
+PM2 ..> Coordinator : Administra
+PM2 ..> Worker1 : Administra
+PM2 ..> Worker2 : Administra
+PM2 ..> Worker3 : Administra
+PM2 ..> Observer : Administra
 
 @enduml
